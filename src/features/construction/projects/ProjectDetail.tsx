@@ -55,6 +55,8 @@ import {
 } from '../../../hooks/queries/construction/useProjectMembers';
 import {
   useDownloadB1Mutation,
+  useDownloadB2Mutation,
+  useDownloadProjectB2Mutation,
   useDownloadB3Mutation
 } from '../../../hooks/queries/construction/useReports';
 import { useEmployees } from '../../../hooks/queries/useEmployees';
@@ -186,15 +188,22 @@ const ProjectDetail: React.FC = () => {
   const { mutate: inviteMembers } = useInviteMembersMutation(id!);
   const { mutate: updateMembers } = useUpdateMembersMutation(id!);
   const { mutate: transferManager } = useTransferManagerMutation(id!);
+  // Mutations de Reportes
   const { mutate: downloadB1, isPending: isDownloadingB1 } = useDownloadB1Mutation();
+  const { mutate: downloadB2, isPending: isDownloadingB2 } = useDownloadB2Mutation();
+  const { mutate: downloadProjectB2, isPending: isDownloadingProjectB2 } = useDownloadProjectB2Mutation();
   const { mutate: downloadB3, isPending: isDownloadingB3 } = useDownloadB3Mutation();
+
+  const [b3Filter, setB3Filter] = useState<string>("");
 
   const { register, handleSubmit, reset, formState: { isDirty } } = useForm<UpdateProjectParametersRequest>();
 
   // Permisos del usuario actual sobre esta obra
   const myMemberInfo = members?.find(m => m.userId === currentUser?.id);
-  const canModifyBudget = myMemberInfo?.isEncargado || myMemberInfo?.canEdit || currentUser?.role === 'Empresa';
-  const canManageTeam = myMemberInfo?.isEncargado || myMemberInfo?.canShare || currentUser?.role === 'Empresa';
+  const isHighLevelAdmin = currentUser?.role === 'Empresa' || currentUser?.role === 'SubCuentaEmpresa' || currentUser?.role === 'SuperAdminGlobal';
+  
+  const canModifyBudget = myMemberInfo?.isEncargado || myMemberInfo?.canEdit || isHighLevelAdmin;
+  const canManageTeam = myMemberInfo?.isEncargado || myMemberInfo?.canShare || isHighLevelAdmin;
 
   useEffect(() => {
     if (parameters) {
@@ -459,6 +468,9 @@ const ProjectDetail: React.FC = () => {
     );
   }
 
+  // Cálculos Gerenciales
+  const totalGeneral = modules?.reduce((acc, curr) => acc + curr.totalAmount, 0) || 0;
+
   return (
     <div className="space-y-6 text-left animate-in fade-in duration-500 text-left text-left text-left text-left">
       {/* Header Centralizado */}
@@ -580,6 +592,23 @@ const ProjectDetail: React.FC = () => {
               ))}
             </div>
           )}
+
+          {/* Gran Total al Final de la Lista */}
+          {modules && modules.length > 0 && (
+            <div className="bg-[#0f172a] p-8 rounded-[40px] shadow-xl flex items-center justify-between mt-8 border border-white/5 animate-in slide-in-from-bottom-4 duration-500 text-left">
+              <div className="text-left">
+                <h4 className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mb-1">Cierre de Presupuesto</h4>
+                <p className="text-white/60 text-[11px] font-medium leading-relaxed max-w-xs">Suma total de todos los capítulos y actividades registradas en la obra hasta el momento.</p>
+              </div>
+              <div className="text-right text-left">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Gran Total Obra</p>
+                <p className="text-4xl font-black text-white mt-2">
+                  <span className="text-blue-500 text-2xl mr-1">Bs.</span>
+                  {totalGeneral.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -660,40 +689,75 @@ const ProjectDetail: React.FC = () => {
 
       {/* 3. REPORTES */}
       {activeTab === 'reports' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300 text-left text-left text-left">
-          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl transition-all group flex flex-col justify-between h-80 text-left text-left text-left">
-            <div className="text-left text-left text-left text-left">
-              <div className="h-14 w-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform text-left text-left text-left">
-                <FileText className="h-8 w-8 text-left text-left text-left" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in duration-300 text-left">
+          {/* B-1: Presupuesto */}
+          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl transition-all group flex flex-col justify-between h-[340px] text-left">
+            <div className="text-left">
+              <div className="h-14 w-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform text-left">
+                <FileText className="h-8 w-8 text-left" />
               </div>
-              <h4 className="text-xl font-black text-gray-900 mb-2 text-left text-left text-left">Formulario B-1</h4>
-              <p className="text-sm text-gray-500 leading-relaxed font-medium text-left text-left text-left">Presupuesto por Ítems y General. Documento oficial que resume todos los capítulos y actividades de la obra.</p>
+              <h4 className="text-xl font-black text-gray-900 mb-2 text-left">Formulario B-1</h4>
+              <p className="text-xs text-gray-500 leading-relaxed font-medium text-left">Presupuesto General de Obra. Resume todos los capítulos y actividades con sus subtotales y literal.</p>
             </div>
             <button 
               onClick={() => downloadB1({ id: id!, name: currentProject.name })}
               disabled={isDownloadingB1}
-              className="w-full mt-8 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50 text-left text-left text-left"
+              className="w-full mt-8 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50 text-left"
             >
-              {isDownloadingB1 ? <Loader2 className="h-5 w-5 animate-spin text-left text-left text-left" /> : <Download className="h-5 w-5 text-left text-left text-left" />}
-              {isDownloadingB1 ? 'Generando...' : 'Descargar PDF B-1'}
+              {isDownloadingB1 ? <Loader2 className="h-5 w-5 animate-spin text-left" /> : <Download className="h-5 w-5 text-left" />}
+              {isDownloadingB1 ? 'Generando...' : 'Descargar B-1'}
             </button>
           </div>
 
-          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl transition-all group flex flex-col justify-between h-80 text-left text-left text-left text-left">
-            <div className="text-left text-left text-left text-left text-left">
-              <div className="h-14 w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mb-6 group-hover:scale-110 transition-transform text-left text-left text-left text-left">
-                <Printer className="h-8 w-8 text-left text-left text-left" />
+          {/* B-2: APU Masivo (NUEVO) */}
+          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl transition-all group flex flex-col justify-between h-[340px] text-left">
+            <div className="text-left">
+              <div className="h-14 w-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-6 group-hover:scale-110 transition-transform text-left">
+                <Calculator className="h-8 w-8 text-left" />
               </div>
-              <h4 className="text-xl font-black text-gray-900 mb-2 text-left text-left text-left">Formulario B-3</h4>
-              <p className="text-sm text-gray-500 leading-relaxed font-medium text-left text-left text-left">Precios Unitarios Elementales. Listado consolidado de todos los insumos únicos del proyecto.</p>
+              <h4 className="text-xl font-black text-gray-900 mb-2 text-left">APU Masivo (B-2)</h4>
+              <p className="text-xs text-gray-500 leading-relaxed font-medium text-left">Análisis de Precios Unitarios de todo el proyecto. Genera un único PDF con una página por cada ítem.</p>
             </div>
             <button 
-              onClick={() => downloadB3({ id: id!, name: currentProject.name })}
-              disabled={isDownloadingB3}
-              className="w-full mt-8 py-4 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center gap-3 disabled:opacity-50 text-left text-left text-left"
+              onClick={() => downloadProjectB2({ id: id!, name: currentProject.name })}
+              disabled={isDownloadingProjectB2}
+              className="w-full mt-8 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-3 disabled:opacity-50 text-left"
             >
-              {isDownloadingB3 ? <Loader2 className="h-5 w-5 animate-spin text-left text-left text-left" /> : <Download className="h-5 w-5 text-left text-left text-left" />}
-              {isDownloadingB3 ? 'Generando...' : 'Descargar PDF B-3'}
+              {isDownloadingProjectB2 ? <Loader2 className="h-5 w-5 animate-spin text-left" /> : <Download className="h-5 w-5 text-left" />}
+              {isDownloadingProjectB2 ? 'Generando...' : 'Descargar APU Masivo'}
+            </button>
+          </div>
+
+          {/* B-3: Insumos Consolidados (CON FILTROS) */}
+          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl transition-all group flex flex-col justify-between h-[340px] text-left">
+            <div className="text-left">
+              <div className="h-14 w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mb-6 group-hover:scale-110 transition-transform text-left">
+                <Printer className="h-8 w-8 text-left" />
+              </div>
+              <h4 className="text-xl font-black text-gray-900 mb-2 text-left">Formulario B-3</h4>
+              <p className="text-xs text-gray-500 leading-relaxed font-medium mb-4 text-left">Listado consolidado de insumos. Puedes filtrar por tipo antes de exportar.</p>
+              
+              <div className="space-y-1 text-left">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 text-left">Filtrar por Tipo</label>
+                <select 
+                  value={b3Filter}
+                  onChange={(e) => setB3Filter(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-green-100 transition-all text-left"
+                >
+                  <option value="">Todos los insumos</option>
+                  <option value="Materiales">Solo Materiales</option>
+                  <option value="Obreros">Solo Mano de Obra</option>
+                  <option value="Equipos">Solo Equipo y Maquinaria</option>
+                </select>
+              </div>
+            </div>
+            <button 
+              onClick={() => downloadB3({ id: id!, name: currentProject.name, filter: b3Filter })}
+              disabled={isDownloadingB3}
+              className="w-full mt-8 py-4 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center gap-3 disabled:opacity-50 text-left"
+            >
+              {isDownloadingB3 ? <Loader2 className="h-5 w-5 animate-spin text-left" /> : <Download className="h-5 w-5 text-left" />}
+              {isDownloadingB3 ? 'Generando...' : 'Descargar B-3'}
             </button>
           </div>
         </div>

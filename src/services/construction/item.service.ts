@@ -23,18 +23,6 @@ export const itemService = {
     await api.delete(`${BASE_URL}/items/${id}`);
   },
 
-  // --- Gestión de Análisis de Precios Unitarios (APU) ---
-  
-  getItemAnalysis: async (id: string): Promise<BudgetItemAnalysisDto> => {
-    const response = await api.get<BudgetItemAnalysisDto>(`${BASE_URL}/items/${id}/analysis`);
-    return response.data;
-  },
-
-  // Añadir recurso manual (POST /api/items/{id}/resources/custom)
-  addCustomResource: async (itemId: string, data: AddCustomResourceRequest): Promise<void> => {
-    await api.post(`${BASE_URL}/items/${itemId}/resources/custom`, data);
-  },
-
   // Actualizar recurso en el APU (PUT /api/items/{id}/resources/{resourceId})
   updateItemResource: async (itemId: string, resourceId: string, data: UpdateItemResourceRequest): Promise<void> => {
     await api.put(`${BASE_URL}/items/${itemId}/resources/${resourceId}`, data);

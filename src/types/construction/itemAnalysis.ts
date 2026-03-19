@@ -11,21 +11,41 @@ export interface AnalysisResourceDto {
 export interface BudgetItemAnalysisDto {
   budgetItemId: string;
   itemName: string;
+  itemUnit: string;
+  projectCode: string;
+  projectName: string;
+  client: string;
+  location: string;
+  
+  // Totales y Subtotales
   totalMaterials: number;
-  materials: AnalysisResourceDto[];
+  
   laborSubtotal: number;
+  socialBenefitsPercentage: number;
   socialBenefits: number;
+  laborIVAPercentage: number;
   laborIVA: number;
   totalLabor: number;
-  labor: AnalysisResourceDto[];
+  
   equipmentSubtotal: number;
+  minorToolsPercentage: number;
   minorTools: number;
   totalEquipment: number;
-  equipment: AnalysisResourceDto[];
+  
+  generalExpensesPercentage: number;
   generalExpenses: number;
+  utilityPercentage: number;
   utility: number;
+  taxITPercentage: number;
   taxIT: number;
+  
   finalUnitPrice: number;
+  finalUnitPriceLiteral: string;
+
+  // Listas de recursos
+  materials: AnalysisResourceDto[];
+  labor: AnalysisResourceDto[];
+  equipment: AnalysisResourceDto[];
 }
 
 // DTO para POST /api/items/{id}/resources/custom

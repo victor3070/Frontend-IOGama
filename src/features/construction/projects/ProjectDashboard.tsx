@@ -184,7 +184,9 @@ const ProjectDashboard: React.FC = () => {
               <div className="mt-auto pt-6 border-t border-gray-50 flex items-center justify-between text-left">
                 <div className="text-left text-left text-left">
                   <p className="text-[10px] font-black text-gray-400 uppercase text-left">Presupuesto</p>
-                  <p className="text-lg font-black text-gray-900 text-left">Bs. 0.00</p>
+                  <p className="text-lg font-black text-gray-900 text-left">
+                    Bs. {(project.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
                 </div>
                 <button 
                   onClick={() => navigate(`/construction/projects/${project.id}`)}

@@ -1,9 +1,11 @@
 export interface B1ReportItemDto {
   id: string;
+  itemNumber: string;
   name: string;
   unit: string;
   quantity: number;
   unitPrice: number;
+  unitPriceLiteral: string;
   totalPrice: number;
 }
 
@@ -18,6 +20,7 @@ export interface B1ReportModuleDto {
 export interface B1ReportDto {
   projectId: string;
   projectName: string;
+  projectCode: string;
   client: string;
   location: string;
   totalAmount: number;

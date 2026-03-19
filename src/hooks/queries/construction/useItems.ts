@@ -21,14 +21,6 @@ export const useModuleItemsQuery = (moduleId: string) => {
   });
 };
 
-export const useItemAnalysisQuery = (itemId: string) => {
-  return useQuery({
-    queryKey: itemKeys.analysis(itemId),
-    queryFn: () => itemService.getItemAnalysis(itemId),
-    enabled: !!itemId,
-  });
-};
-
 export const useUpdateItemMutation = (moduleId: string, projectId: string) => {
   const queryClient = useQueryClient();
 
