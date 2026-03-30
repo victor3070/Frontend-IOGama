@@ -57,7 +57,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({ template, onClose }) => {
           text: `La plantilla "${data.name}" se ha guardado correctamente.`,
           icon: 'success',
           confirmButtonColor: '#2563eb',
-          customClass: { popup: 'rounded-2xl' }
+          customClass: { popup: 'rounded-[32px]' }
         });
         onClose();
       },
@@ -68,7 +68,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({ template, onClose }) => {
           text: detail,
           icon: 'error',
           confirmButtonColor: '#ef4444',
-          customClass: { popup: 'rounded-2xl' }
+          customClass: { popup: 'rounded-[32px]' }
         });
       }
     });

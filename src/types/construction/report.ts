@@ -28,6 +28,59 @@ export interface B1ReportDto {
   modules: B1ReportModuleDto[];
 }
 
+// Formulario B-2 (Análisis de Precios Unitarios)
+export interface AnalysisResourceItemDto {
+  name: string;
+  unit: string;
+  performance: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface UnitPriceAnalysisDto {
+  budgetItemId: string;
+  itemName: string;
+  itemUnit: string;
+  itemQuantity: number;
+  projectName: string;
+  projectCode: string;
+  client: string;
+  location: string;
+  
+  // Materiales
+  totalMaterials: number;
+  materials: AnalysisResourceItemDto[];
+  
+  // Mano de Obra
+  laborSubtotal: number;
+  socialBenefitsPercentage: number;
+  socialBenefits: number;
+  laborIVAPercentage: number;
+  laborIVA: number;
+  totalLabor: number;
+  labor: AnalysisResourceItemDto[];
+  
+  // Equipo
+  equipmentSubtotal: number;
+  minorToolsPercentage: number;
+  minorTools: number;
+  totalEquipment: number;
+  equipment: AnalysisResourceItemDto[];
+  
+  // Costos Indirectos
+  generalExpensesPercentage: number;
+  generalExpenses: number;
+  utilityPercentage: number;
+  utility: number;
+  itPercentage: number;
+  taxIT: number;
+  
+  // Total
+  finalUnitPrice: number;
+  finalUnitPriceLiteral: string;
+}
+
+// Formulario B-3 (Precios Unitarios Elementales)
 export interface ConsolidatedResourceDto {
   index: number;
   name: string;
@@ -38,6 +91,10 @@ export interface ConsolidatedResourceDto {
 export interface B3ReportDto {
   projectId: string;
   projectName: string;
+  projectCode: string;
+  client: string;
+  location: string;
+  categoryFilter?: string;
   materials: ConsolidatedResourceDto[];
   labor: ConsolidatedResourceDto[];
   equipment: ConsolidatedResourceDto[];

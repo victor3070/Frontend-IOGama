@@ -1,7 +1,6 @@
 import api from '../../config/api';
 import type { BudgetItemDto } from '../../types/construction/item';
 import type { 
-  BudgetItemAnalysisDto, 
   UpdateItemResourceRequest, 
   AddCustomResourceRequest 
 } from '../../types/construction/itemAnalysis';
@@ -21,6 +20,11 @@ export const itemService = {
 
   deleteItem: async (id: string): Promise<void> => {
     await api.delete(`${BASE_URL}/items/${id}`);
+  },
+
+  // Añadir recurso personalizado al APU (POST /api/items/{id}/resources/custom)
+  addCustomResource: async (itemId: string, data: AddCustomResourceRequest): Promise<void> => {
+    await api.post(`${BASE_URL}/items/${itemId}/resources/custom`, data);
   },
 
   // Actualizar recurso en el APU (PUT /api/items/{id}/resources/{resourceId})

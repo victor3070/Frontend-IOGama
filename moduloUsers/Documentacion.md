@@ -47,6 +47,44 @@ Se desarrolló una vista avanzada de permisos (`EmployeePermissions.tsx`) con la
 
 ---
 
+## 📊 Fase 4: Ingeniería de Costos y Reportes Dinámicos
+
+### 1. Integración de Formularios de Ley (B-1, B-2, B-3)
+Se refactorizó la capa de servicios (`report.service.ts`) para alinearse con los nuevos estándares de `Construction.API`:
+- **Formulario B-1 (Presupuesto General)**: Integración del campo `totalLiteral` y sincronización del Gran Total oficial del backend.
+- **Formulario B-2 (Análisis de Precios Unitarios - APU)**: 
+    - Implementación de la fórmula legal del IVA: `(Subtotal Mano de Obra + Cargas Sociales) * %LaborIVA`.
+    - Visualización persistente de impuestos (IT, IVA, Utilidad) incluso en valores `0.00` con estilo tenue (`opacity-50`).
+    - Generación de Literal para el Precio Unitario Final.
+- **Formulario B-3 (Insumos Consolidados)**:
+    - Implementación de **Previsualización JSON** antes de la descarga.
+    - Sistema de filtrado por categorías: Materiales, Obreros y Equipos.
+
+### 2. Sincronización y Reactividad Avanzada
+Se optimizó el uso de **TanStack Query** para garantizar la integridad de los datos en tiempo real:
+- **Invalidación en Cascada**: Las mutaciones en ítems o recursos disparan automáticamente el refresco de los reportes B-1 y B-2.
+- **Null-Safety**: Implementación de validaciones de seguridad en componentes de alto cálculo para prevenir colapsos por datos incompletos del servidor.
+
+### 3. Catálogo Vivo en APU
+- Integración del buscador de insumos maestro dentro del editor de APU, permitiendo la construcción dinámica de análisis mediante la inserción directa de recursos del catálogo.
+
+---
+
+## ✨ Mejoras de Experiencia de Usuario (UX)
+
+### 1. Estandarización Visual de Confirmaciones
+- Se refactorizaron todas las llamadas a **SweetAlert2** para adoptar el estándar de diseño `rounded-[32px]`.
+- Implementación de flujos de confirmación para acciones críticas: Guardar configuración, Iniciar Obra, Eliminar elementos y Transferir liderazgo.
+
+### 2. Optimización de Menús de Acción
+- **Cambio de Paradigma**: Los menús de "tres puntos" (Portafolio de Obras y Lista de Empleados) migraron de un comportamiento por `hover` a un sistema basado en **clic con persistencia de estado**.
+- **Solución de Bugs**: Se eliminaron las animaciones agresivas y el cierre accidental de opciones, garantizando una navegación fluida y precisa.
+
+### 3. Gestión de Descargas
+- Inclusión de alertas informativas antes de la generación de archivos PDF para gestionar las expectativas de tiempo de procesamiento del servidor.
+
+---
+
 ## 🛠️ Stack Tecnológico
 - **Framework**: Vite + React + TypeScript.
 - **UI/UX**: Tailwind CSS + Lucide React.
@@ -55,5 +93,5 @@ Se desarrolló una vista avanzada de permisos (`EmployeePermissions.tsx`) con la
 
 ---
 
-**Última actualización:** 06 de Marzo de 2026
-**Estado General:** Sprint de Gestión de Empleados y Permisos finalizado al 100%.
+**Última actualización:** 18 de Marzo de 2026
+**Estado General:** Sprint de Reportes e Ingeniería de Costos finalizado. Sistema de confirmaciones y UX optimizado.

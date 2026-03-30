@@ -67,7 +67,7 @@ const Login: React.FC = () => {
           text: 'Credenciales no válidas', 
           icon: 'error', 
           confirmButtonColor: '#0f172a',
-          customClass: { popup: 'rounded-2xl' }
+          customClass: { popup: 'rounded-[32px]' }
         });
       } else {
         Swal.fire({ 
@@ -75,7 +75,7 @@ const Login: React.FC = () => {
           text: 'Servidor fuera de línea', 
           icon: 'question', 
           confirmButtonColor: '#0f172a',
-          customClass: { popup: 'rounded-2xl' }
+          customClass: { popup: 'rounded-[32px]' }
         });
       }
     } finally {

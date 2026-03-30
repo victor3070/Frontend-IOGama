@@ -10,15 +10,17 @@ import {
   Truck,
   Settings2,
   Info,
-  Printer
+  Printer,
+  Plus
 } from 'lucide-react';
 import { 
   useUpdateItemResourceMutation,
-  useDeleteItemResourceMutation
+  useDeleteItemResourceMutation,
+  useAddCustomResourceMutation
 } from '../../../hooks/queries/construction/useItems';
 import { useResourcesQuery } from '../../../hooks/queries/construction/useResources';
 import { useB2AnalysisQuery, useDownloadB2Mutation } from '../../../hooks/queries/construction/useReports';
-import type { AnalysisResourceDto } from '../../../types/construction/itemAnalysis';
+import type { UnitPriceAnalysisDto } from '../../../types/construction/report';
 import Swal from 'sweetalert2';
 
 interface BudgetItemAnalysisProps {
@@ -38,20 +40,37 @@ const BudgetItemAnalysis: React.FC<BudgetItemAnalysisProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Queries (Ahora usando useB2AnalysisQuery de Reports para obtener el JSON completo)
+  // Queries
   const { data: analysis, isLoading: isAnalysisLoading } = useB2AnalysisQuery(itemId);
   const { data: resourcesData } = useResourcesQuery({ search: searchTerm, pageSize: 5 });
 
   // Mutations
+  const { mutate: addResource } = useAddCustomResourceMutation(itemId, moduleId, projectId);
   const { mutate: updateResource } = useUpdateItemResourceMutation(itemId, moduleId, projectId);
   const { mutate: deleteResource } = useDeleteItemResourceMutation(itemId, moduleId, projectId);
   const { mutate: downloadB2, isPending: isDownloadingB2 } = useDownloadB2Mutation();
 
-  const handleUpdate = (resource: AnalysisResourceDto, field: 'performance' | 'unitPrice', value: number) => {
+  const handleAddResource = (resource: any) => {
+    addResource({
+      budgetItemId: itemId,
+      name: resource.name,
+      unitOfMeasureId: resource.unitOfMeasureId,
+      unitPrice: resource.unitPrice,
+      performance: 1,
+      quantity: 0,
+      type: resource.type
+    });
+    setSearchTerm('');
+  };
+
+  const handleUpdate = (resource: any, field: 'performance' | 'unitPrice', value: number) => {
+    // Nota: Se asume que el DTO de reporte ahora incluye el ID para permitir edición
+    if (!resource.id && !resource.resourceId) return;
+    
     updateResource({
-      resourceId: resource.resourceId,
+      resourceId: resource.id || resource.resourceId,
       data: {
-        id: resource.resourceId,
+        id: resource.id || resource.resourceId,
         name: resource.name,
         unitOfMeasureId: "", 
         unitPrice: field === 'unitPrice' ? value : resource.unitPrice,
@@ -62,7 +81,9 @@ const BudgetItemAnalysis: React.FC<BudgetItemAnalysisProps> = ({
     });
   };
 
-  const handleDelete = (resource: AnalysisResourceDto) => {
+  const handleDelete = (resource: any) => {
+    if (!resource.id && !resource.resourceId) return;
+
     Swal.fire({
       title: '¿Quitar recurso?',
       text: `Se eliminará "${resource.name}" del análisis.`,
@@ -70,10 +91,10 @@ const BudgetItemAnalysis: React.FC<BudgetItemAnalysisProps> = ({
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       confirmButtonText: 'Sí, eliminar',
-      customClass: { popup: 'rounded-2xl' }
+      customClass: { popup: 'rounded-[32px]' }
     }).then((result) => {
       if (result.isConfirmed) {
-        deleteResource(resource.resourceId);
+        deleteResource(resource.id || resource.resourceId);
       }
     });
   };
@@ -144,6 +165,28 @@ const BudgetItemAnalysis: React.FC<BudgetItemAnalysisProps> = ({
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+
+              {/* Resultados de búsqueda */}
+              {searchTerm && resourcesData?.items && resourcesData.items.length > 0 && (
+                <div className="absolute z-10 w-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  {resourcesData.items.map((res: any) => (
+                    <button
+                      key={res.id}
+                      onClick={() => handleAddResource(res)}
+                      className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-all border-b border-gray-50 last:border-0"
+                    >
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-gray-800">{res.name}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{res.type} • {res.unitName}</p>
+                      </div>
+                      <div className="text-right flex items-center gap-3">
+                        <p className="text-xs font-black text-blue-600">Bs. {res.unitPrice.toFixed(2)}</p>
+                        <Plus className="h-4 w-4 text-blue-600" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Listado de Recursos */}
@@ -162,8 +205,8 @@ const BudgetItemAnalysis: React.FC<BudgetItemAnalysisProps> = ({
                     {!section.data || section.data.length === 0 ? (
                       <div className="p-6 text-center text-gray-400 italic text-xs">Sin registros asignados.</div>
                     ) : (
-                      section.data.map((res) => (
-                        <div key={res.resourceId} className="px-6 py-4 flex items-center justify-between group hover:bg-slate-50/50 transition-all">
+                      section.data.map((res: any) => (
+                        <div key={res.id || res.name} className="px-6 py-4 flex items-center justify-between group hover:bg-slate-50/50 transition-all">
                           <div className="flex-1 text-left">
                             <p className="text-sm font-bold text-gray-800">{res.name}</p>
                             <p className="text-[10px] text-gray-400 font-medium">{res.unit}</p>
@@ -217,55 +260,73 @@ const BudgetItemAnalysis: React.FC<BudgetItemAnalysisProps> = ({
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-slate-400 font-medium">Total Materiales</span>
-                  <span className="font-bold">Bs. {analysis?.totalMaterials.toFixed(2)}</span>
+                  <span className="font-bold">Bs. {(analysis?.totalMaterials || 0).toFixed(2)}</span>
                 </div>
                 
                 <div className="h-px bg-white/10 my-4"></div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-400 font-medium">Mano de Obra (Neto)</span>
-                  <span className="font-bold">Bs. {analysis?.laborSubtotal.toFixed(2)}</span>
+                  <span className="text-sm text-slate-400 font-medium">Mano de Obra (Subtotal)</span>
+                  <span className="font-bold">Bs. {(analysis?.laborSubtotal || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500 italic">Beneficios Sociales ({analysis?.socialBenefitsPercentage.toFixed(2)}%)</span>
-                  <span className="text-blue-400 font-bold text-xs">Bs. {analysis?.socialBenefits.toFixed(2)}</span>
+                  <span className="text-xs text-slate-500 italic">Beneficios Sociales ({(analysis?.socialBenefitsPercentage || 0).toFixed(2)}%)</span>
+                  <span className="text-blue-400 font-bold text-xs">Bs. {(analysis?.socialBenefits || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500 italic">IVA s/ Mano de Obra ({analysis?.laborIVAPercentage.toFixed(2)}%)</span>
-                  <span className="text-blue-400 font-bold text-xs">Bs. {analysis?.laborIVA.toFixed(2)}</span>
+                  <span className="text-xs text-slate-500 italic">IVA s/ Mano de Obra ({(analysis?.laborIVAPercentage || 0).toFixed(2)}%)</span>
+                  <span className={`${analysis?.laborIVA === 0 ? 'text-slate-600 opacity-50' : 'text-blue-400'} font-bold text-xs`}>
+                    Bs. {(analysis?.laborIVA || 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-sm text-slate-300 font-bold">Total Mano de Obra</span>
+                  <span className="font-bold text-blue-400">Bs. {(analysis?.totalLabor || 0).toFixed(2)}</span>
                 </div>
                 
                 <div className="h-px bg-white/10 my-4"></div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-slate-400 font-medium">Equipo y Maquinaria</span>
-                  <span className="font-bold">Bs. {analysis?.equipmentSubtotal.toFixed(2)}</span>
+                  <span className="font-bold">Bs. {(analysis?.equipmentSubtotal || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500 italic">Herramientas Menores ({analysis?.minorToolsPercentage.toFixed(2)}%)</span>
-                  <span className="text-purple-400 font-bold text-xs">Bs. {analysis?.minorTools.toFixed(2)}</span>
+                  <span className="text-xs text-slate-500 italic">Herramientas Menores ({(analysis?.minorToolsPercentage || 0).toFixed(2)}%)</span>
+                  <span className={`${analysis?.minorTools === 0 ? 'text-slate-600 opacity-50' : 'text-purple-400'} font-bold text-xs`}>
+                    Bs. {(analysis?.minorTools || 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-sm text-slate-300 font-bold">Total Equipo</span>
+                  <span className="font-bold text-purple-400">Bs. {(analysis?.totalEquipment || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="h-px bg-white/10 my-4"></div>
                 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-400 font-medium text-left">Gastos Generales ({analysis?.generalExpensesPercentage.toFixed(2)}%)</span>
-                  <span className="font-bold text-xs">Bs. {analysis?.generalExpenses.toFixed(2)}</span>
+                  <span className="text-sm text-slate-400 font-medium text-left">Gastos Generales ({(analysis?.generalExpensesPercentage || 0).toFixed(2)}%)</span>
+                  <span className={`${analysis?.generalExpenses === 0 ? 'text-slate-600 opacity-50' : 'text-white'} font-bold text-xs`}>
+                    Bs. {(analysis?.generalExpenses || 0).toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-400 font-medium text-left">Utilidad ({analysis?.utilityPercentage.toFixed(2)}%)</span>
-                  <span className="text-green-400 font-bold text-xs">Bs. {analysis?.utility.toFixed(2)}</span>
+                  <span className="text-sm text-slate-400 font-medium text-left">Utilidad ({(analysis?.utilityPercentage || 0).toFixed(2)}%)</span>
+                  <span className={`${analysis?.utility === 0 ? 'text-slate-600 opacity-50' : 'text-green-400'} font-bold text-xs`}>
+                    Bs. {(analysis?.utility || 0).toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-400 font-medium text-left">Impuestos IT ({analysis?.taxITPercentage.toFixed(2)}%)</span>
-                  <span className="font-bold text-xs">Bs. {analysis?.taxIT.toFixed(2)}</span>
+                  <span className="text-sm text-slate-400 font-medium text-left">Impuestos IT ({(analysis?.itPercentage || 0).toFixed(2)}%)</span>
+                  <span className={`${analysis?.taxIT === 0 ? 'text-slate-600 opacity-50' : 'text-white'} font-bold text-xs`}>
+                    Bs. {(analysis?.taxIT || 0).toFixed(2)}
+                  </span>
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-white/20 text-left">
                   <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Precio Unitario Final</p>
-                  <p className="text-4xl font-black text-white mt-1">Bs. {analysis?.finalUnitPrice.toFixed(2)}</p>
+                  <p className="text-4xl font-black text-white mt-1">Bs. {(analysis?.finalUnitPrice || 0).toFixed(2)}</p>
                   {analysis?.finalUnitPriceLiteral && (
-                    <p className="text-[9px] text-slate-500 mt-2 italic leading-tight">
+                    <p className="text-[9px] text-slate-500 mt-2 italic leading-tight uppercase">
                       {analysis.finalUnitPriceLiteral}
                     </p>
                   )}

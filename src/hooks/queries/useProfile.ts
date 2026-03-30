@@ -31,7 +31,7 @@ export const useUpdateProfile = () => {
         icon: 'success',
         confirmButtonColor: '#2563eb', // blue-600
         customClass: {
-          popup: 'rounded-2xl',
+          popup: 'rounded-[32px]',
         }
       });
     },

@@ -1,82 +1,43 @@
-# Instrucciones Fase 2: Layout Base y Contexto del Usuario
+# Contexto del Proyecto
+Actúa como un Desarrollador Frontend Senior experto en integración de APIs y refactorización de código. Estamos trabajando en el sistema frontend para la empresa constructora "IO-Gama Construcciones" (enfoque Single-Tenant). 
+Ya existe código frontend desarrollado, pero necesitamos **corregirlo, refactorizarlo y pulirlo** para alinearlo con las recientes actualizaciones críticas que se hicieron en el backend (`Construction.API`).
 
-## 🎭 ROL Y CONTEXTO
-Actúa como un Senior Frontend Engineer experto en React, TypeScript, Clean Architecture y Tailwind CSS. Estamos desarrollando el frontend del ERP "IO GAMA Construcciones" (Single-Tenant estricto).
+# Archivos de Referencia Iniciales
+1. Para entender los requerimientos exactos de los endpoints y los cambios recientes, debes leer y basarte estrictamente en:
+   `D:\scripts-csharp\Frontend-IO-Gama\Frontend-IO-Gama\moduloUsers\instrucciones.md`
+2. Todo el plan de trabajo y los pasos que vayas a ejecutar debes documentarlos detalladamente en:
+   `D:\scripts-csharp\Frontend-IO-Gama\Frontend-IO-Gama\moduloUsers\PlanDeTrabajo.md`
 
-Ya hemos finalizado exitosamente la "Fase 1: Núcleo de Autenticación y Seguridad" (tenemos configurado `zustand` en `src/store/authStore.ts`, la instancia de axios con interceptores en `src/config/api.ts`, y las rutas protegidas).
+# Reglas Estrictas e Inquebrantables (CRÍTICO)
+1. **PROHIBIDO INVENTAR DATOS O ENDPOINTS:** Bajo ninguna circunstancia debes adivinar o alucinar la estructura de un endpoint, los payloads (body) de envío o los JSON de respuesta.
+2. **SOLICITAR INFORMACIÓN FALTANTE:** Si al revisar el código frontend notas que necesitas consumir un endpoint y no tienes su contrato exacto (Request/Response), **DEBES DETENERTE Y PREGUNTARME**. Te proporcionaré el Swagger, las entradas y las salidas.
+3. **NO REESCRIBIR DESDE CERO:** El frontend ya tiene código. Tu trabajo es identificar los componentes y servicios existentes que manejaban los reportes y *actualizarlos/corregirlos*.
+4. **MANEJO DE DESCARGAS PDF:** Para los endpoints que retornan archivos PDF (`/pdf`), debes implementar correctamente la lógica en el frontend enviando el Token JWT en el Header de Autorización y manejando la respuesta como un `Blob` para forzar la descarga o abriéndolo en una nueva pestaña según sea más óptimo para la UX.
 
-Tu objetivo ahora es desarrollar e implementar el código para la **FASE 2: Layout Base y Contexto del Usuario (Sprints HU-FRONT-04, 05, 06)**.
+# Tareas Inmediatas a Desarrollar (Plan de Trabajo Inicial)
+Debes analizar el código frontend actual y estructurar un plan en `PlanDeTrabajo.md` para abordar las siguientes integraciones que cambiaron en el backend:
 
----
+1. **Eliminación de Código Obsoleto:**
+   - Buscar y eliminar cualquier consumo al endpoint antiguo: `GET /api/items/{id}/analysis`.
 
-## 🛠️ STACK TÉCNICO Y REGLAS ESTRICTAS DE LA FASE 2
+2. **Integración de Formulario B-1 (Presupuesto General):**
+   - Integrar JSON: `GET /api/Reports/projects/{projectId}/budget`.
+   - Implementar vista/descarga PDF: `GET /api/Reports/projects/{projectId}/budget/pdf`.
+   - *Nota UI:* Asegurarse de mostrar el nuevo campo `totalLiteral` en la interfaz.
 
-1. **Peticiones HTTP**: Usa **EXCLUSIVAMENTE** la instancia de Axios ya configurada (`import api from '@/config/api'`). Las rutas van al Smart Gateway (ej. `/api/Users/profile/me`).
-2. **Gestión de Estado Híbrida (CRÍTICO)**:
-   - **Estado de UI**: Usa `zustand` SOLO para el estado visual (ej. abrir/cerrar Sidebar). Crea un `uiStore.ts`.
-   - **Estado del Servidor**: Usa OBLIGATORIAMENTE `@tanstack/react-query` (`useQuery`, `useMutation`) para traer y actualizar el perfil. No guardes los datos del perfil en Zustand.
-3. **Formularios**: `react-hook-form` + validación estricta con `zod`.
-4. **UI/UX**: Estilo corporativo, serio y moderno (oficina/construcción). Usa Tailwind CSS (paleta `blue-600`/`blue-700`, fondos `bg-gray-50/100`) y `lucide-react` para iconos.
-5. **Animaciones**: El Sidebar izquierdo debe ser responsivo, colapsable en desktop y off-canvas en mobile, con transiciones/animaciones profesionales y fluidas usando clases de Tailwind.
-6. **Alertas**: Usa notificaciones tipo Toast (Sileo) para errores menores o estados de carga, pero integra **SweetAlert2** EXCLUSIVAMENTE para la confirmación de éxito crítico (ej. "Perfil actualizado correctamente").
+3. **Integración de Formulario B-2 (Análisis de Precios Unitarios - APU):**
+   - Integrar JSON (Datos Crudos): `GET /api/Reports/items/{itemId}/unit-price-analysis`.
+   - Implementar vista/descarga PDF Individual: `GET /api/Reports/items/{itemId}/unit-price-analysis/pdf`.
+   - Implementar vista/descarga PDF Masivo del Proyecto: `GET /api/Reports/projects/{projectId}/unit-price-analysis/pdf`.
+   - *Nota UI:* Reflejar los nuevos cálculos donde el IVA = `(SubtotalMO + CargasSociales) * %LaborIVA`, y manejar visualmente cuando los impuestos IT/IVA vengan en `0.00`.
 
----
+4. **Integración de Formulario B-3 (Precios Unitarios Elementales):**
+   - Integrar JSON: `GET /api/Reports/projects/{projectId}/consolidated-resources` (Soporta query param `filter`: Materiales, Obreros, Equipos).
+   - Implementar vista/descarga PDF: `GET /api/Reports/projects/{projectId}/consolidated-resources/pdf`.
 
-## 📦 DTOS EXACTOS Y TIPADO (`src/types/profile.ts`)
-Basado en el backend de .NET, implementa estas interfaces para asegurar el tipado:
-
-```typescript
-export interface GeoLocation {
-  latitude: number;
-  longitude: number;
-}
-
-export interface UserProfileResponse {
-  id: string;
-  email: string;
-  userType: string; // Ej: 'Personal', 'Company', 'Employee', 'SuperAdminGlobal'
-  nombres?: string; // Para usuarios personales/empleados
-  apellidoPaterno?: string;
-  razonSocial?: string; // Para empresas
-  fotoPerfilUrl?: string;
-  biografia?: string;
-  celular?: string;
-  direccion?: string;
-  ubicacionLaboral?: GeoLocation;
-  modulosActivos?: string[];
-}
-
-export interface UpdateProfileRequest {
-  fotoPerfilUrl?: string;
-  biografia?: string;
-  celular?: string;
-  direccion?: string;
-  ubicacionLaboral?: GeoLocation;
-}
-
-## 🗺️ PLAN DE TRABAJO Y PASOS DE EJECUCIÓN
-Por favor, genera el código paso a paso. No me des todo el código de golpe. Entrega el código de cada paso aplicando principios de Clean Code.
-
-### PASO 1: Store de UI y Tipos
-- Crea `src/types/profile.ts` con las interfaces proporcionadas.
-- Crea `src/store/uiStore.ts` con Zustand para manejar el estado del Sidebar (`isSidebarOpen`, `toggleSidebar`, `closeSidebar`).
-
-### PASO 2: Layout Base y Navegación (DashboardLayout)
-- Crea `src/layouts/Sidebar.tsx`: Navegación vertical a la izquierda. Responsivo (con backdrop en mobile), animaciones suaves, enlaces estilizados según la ruta activa (`react-router-dom`).
-- Crea `src/layouts/Navbar.tsx`: Barra superior. Debe incluir un botón tipo hamburguesa para el sidebar (en mobile) y un menú desplegable de usuario (Avatar) a la derecha.
-- Crea/Actualiza `src/layouts/DashboardLayout.tsx`: Debe integrar el `Sidebar`, el `Navbar` y un `<Outlet />` de React Router en el área principal. Debe estar envuelto mentalmente por el `ProtectedRoute` que ya tenemos.
-
-### PASO 3: HU-FRONT-04 (Consulta de Perfil - Capa de Datos)
-- Crea `src/services/profile.service.ts` con funciones que usen la instancia `api` de Axios (ej. `getMe()`).
-- Crea `src/hooks/queries/useProfile.ts` que exporte un hook custom usando `useQuery` para obtener el perfil.
-- **Integración**: Actualiza el `Navbar` y `Sidebar` para consumir este hook y mostrar el nombre/Razón Social y foto de perfil del usuario real. Usa un *Skeleton* elegante mientras los datos cargan.
-
-### PASO 4: HU-FRONT-05 & 06 (Actualización de Perfil - UI y Mutación)
-- Crea el hook `useUpdateProfile` con `useMutation` en `src/hooks/queries/useProfile.ts`. Al tener éxito, debe invalidar la query del perfil (`queryClient.invalidateQueries`) para refrescar la UI automáticamente y lanzar un modal de éxito con SweetAlert2.
-- Crea la vista `src/features/profile/ProfileSettings.tsx`.
-- Implementa un formulario con diseño corporativo (tarjetas blancas, sombras sutiles) usando `react-hook-form` y `zod` mapeado a `UpdateProfileRequest`.
-
----
-
-## 🚀 INSTRUCCIÓN DE ENTREGA
-Comienza entregando el código completo y estructurado del **PASO 1 y PASO 2**. Cuando termines, detente y espera mi confirmación ("Continúa") para generar los pasos 3 y 4.
+# Instrucción de Inicio
+Para comenzar:
+1. Lee el archivo `instrucciones.md` en la ruta especificada.
+2. Explora el código actual del frontend relacionado con la visualización de presupuestos, ítems y reportes.
+3. Genera tu estrategia detallada paso a paso en el archivo `PlanDeTrabajo.md`.
+4. Una vez guardado el plan, avísame para revisarlo y darte luz verde para empezar a modificar el código.

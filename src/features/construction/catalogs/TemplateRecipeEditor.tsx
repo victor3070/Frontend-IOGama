@@ -105,7 +105,7 @@ const TemplateRecipeEditor: React.FC = () => {
         text: 'Los cambios se han guardado permanentemente.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
 
       // Actualizar los IDs iniciales para la próxima edición sin recargar

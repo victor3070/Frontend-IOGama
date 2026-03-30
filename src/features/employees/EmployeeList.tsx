@@ -70,7 +70,12 @@ const EmployeeList: React.FC = () => {
   const handleEditProfile = async (emp: EmployeeListItem) => {
     setActiveMenuId(null);
     try {
-      Swal.fire({ title: 'Cargando datos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ 
+        title: 'Cargando datos...', 
+        allowOutsideClick: false, 
+        didOpen: () => Swal.showLoading(),
+        customClass: { popup: 'rounded-[32px]' }
+      });
       const detail = await employeeService.getEmployeeDetail(emp.id);
       Swal.close();
 

@@ -72,7 +72,7 @@ export const useBulkImportMutation = (projectId: string) => {
         text: 'Las actividades han sido añadidas al presupuesto de la obra.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     },
     onError: (error: any) => {

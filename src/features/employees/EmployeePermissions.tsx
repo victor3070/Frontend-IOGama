@@ -116,7 +116,7 @@ const EmployeePermissions: React.FC = () => {
         text: 'Los cambios se han sincronizado en ambos servidores.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     } catch (error) {
       console.error('Error al guardar permisos:', error);

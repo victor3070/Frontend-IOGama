@@ -47,7 +47,7 @@ export const useCreateProjectMutation = () => {
         text: 'La nueva obra ha sido dada de alta exitosamente.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     },
     onError: (error: any) => {
@@ -65,7 +65,7 @@ export const useCreateProjectMutation = () => {
         html: `<div class="text-left text-sm text-red-600">${errorMessage}</div>`,
         icon: 'error',
         confirmButtonColor: '#ef4444',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     }
   });
@@ -84,7 +84,7 @@ export const useUpdateProjectParametersMutation = (projectId: string) => {
         text: 'Los coeficientes impositivos se han actualizado correctamente.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     },
     onError: (error: any) => {
@@ -94,7 +94,7 @@ export const useUpdateProjectParametersMutation = (projectId: string) => {
         text: error.response?.data?.message || 'No se pudieron sincronizar los parámetros con el servidor.',
         icon: 'error',
         confirmButtonColor: '#ef4444',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     }
   });

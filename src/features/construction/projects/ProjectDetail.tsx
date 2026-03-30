@@ -57,7 +57,9 @@ import {
   useDownloadB1Mutation,
   useDownloadB2Mutation,
   useDownloadProjectB2Mutation,
-  useDownloadB3Mutation
+  useDownloadB3Mutation,
+  useB1DataQuery,
+  useB3DataQuery
 } from '../../../hooks/queries/construction/useReports';
 import { useEmployees } from '../../../hooks/queries/useEmployees';
 import { useAuthStore } from '../../../store/authStore';
@@ -72,7 +74,7 @@ import BudgetItemAnalysis from './BudgetItemAnalysis';
 const ModuleItemsTable: React.FC<{ 
   moduleId: string; 
   projectId: string;
-  onViewAnalysis: (itemId: string, itemName: string) => void;
+  onViewAnalysis: (itemId: string, itemName: string, moduleId: string) => void;
 }> = ({ moduleId, projectId, onViewAnalysis }) => {
   const { data: items, isLoading } = useModuleItemsQuery(moduleId);
   const { mutate: updateItem } = useUpdateItemMutation(moduleId, projectId);
@@ -91,7 +93,7 @@ const ModuleItemsTable: React.FC<{
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       confirmButtonText: 'Sí, eliminar',
-      customClass: { popup: 'rounded-2xl' }
+      customClass: { popup: 'rounded-[32px]' }
     }).then((result) => {
       if (result.isConfirmed) {
         deleteItem(id);
@@ -140,7 +142,7 @@ const ModuleItemsTable: React.FC<{
                 <td className="px-6 py-3 text-right text-left text-left">
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity text-left text-left text-left">
                     <button 
-                      onClick={() => onViewAnalysis(item.id, item.name)}
+                      onClick={() => onViewAnalysis(item.id, item.name, moduleId)}
                       className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-left text-left" 
                       title="Análisis de Precios Unitarios"
                     >
@@ -160,6 +162,77 @@ const ModuleItemsTable: React.FC<{
   );
 };
 
+// --- Sub-componente para Previsualización B-3 ---
+const B3ResourcesPreview: React.FC<{ projectId: string; filter: string }> = ({ projectId, filter }) => {
+  const { data: b3Data, isLoading } = useB3DataQuery(projectId, filter);
+
+  if (isLoading) return (
+    <div className="mt-8 p-12 bg-white rounded-[40px] border border-gray-100 flex flex-col items-center justify-center gap-4">
+      <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+      <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Cargando vista previa de insumos...</p>
+    </div>
+  );
+
+  if (!b3Data) return null;
+
+  const sections = [
+    { title: 'Materiales', data: b3Data?.materials || [], color: 'text-amber-600', bg: 'bg-amber-50' },
+    { title: 'Mano de Obra', data: b3Data?.labor || [], color: 'text-blue-600', bg: 'bg-blue-50' },
+    { title: 'Equipo y Maquinaria', data: b3Data?.equipment || [], color: 'text-purple-600', bg: 'bg-purple-50' }
+  ];
+
+  const hasData = sections.some(s => s.data && s.data.length > 0);
+
+  return (
+    <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="flex items-center justify-between px-4">
+        <h4 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+          Vista Previa: Insumos Consolidados {filter ? `(${filter})` : ''}
+        </h4>
+      </div>
+
+      {!hasData ? (
+        <div className="p-12 bg-white rounded-[40px] border border-gray-100 text-center">
+          <p className="text-gray-400 italic text-sm">No se encontraron insumos para este filtro.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6">
+          {sections.map((section, idx) => section.data.length > 0 && (
+            <div key={idx} className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
+              <div className={`px-8 py-4 ${section.bg} border-b border-gray-50 flex items-center gap-2`}>
+                <h5 className={`text-[10px] font-black uppercase tracking-widest ${section.color}`}>{section.title}</h5>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-gray-50">
+                      <th className="px-8 py-3 text-[10px] font-black text-gray-400 uppercase w-16">#</th>
+                      <th className="px-8 py-3 text-[10px] font-black text-gray-400 uppercase">Descripción del Insumo</th>
+                      <th className="px-8 py-3 text-[10px] font-black text-gray-400 uppercase">Unidad</th>
+                      <th className="px-8 py-3 text-[10px] font-black text-gray-400 uppercase text-right">P. Unitario (Bs.)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {section.data.map((item) => (
+                      <tr key={item.index} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-8 py-3 text-xs font-bold text-gray-400">{item.index}</td>
+                        <td className="px-8 py-3 text-xs font-bold text-gray-800">{item.name}</td>
+                        <td className="px-8 py-3 text-xs text-gray-500 font-medium">{item.unit}</td>
+                        <td className="px-8 py-3 text-xs font-black text-gray-900 text-right">{(item.unitPrice || 0).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // --- Componente Principal ---
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -167,7 +240,7 @@ const ProjectDetail: React.FC = () => {
   const { user: currentUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'budget' | 'settings' | 'team' | 'reports'>('budget');
   const [importModule, setImportModule] = useState<{id: string, name: string} | null>(null);
-  const [analysisItem, setAnalysisItem] = useState<{id: string, name: string} | null>(null);
+  const [analysisItem, setAnalysisItem] = useState<{id: string, name: string, moduleId: string} | null>(null);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [activeMemberMenu, setActiveMemberMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -179,6 +252,7 @@ const ProjectDetail: React.FC = () => {
   const { data: parameters, isLoading: isParamsLoading } = useProjectParametersQuery(id!);
   const { data: modules, isLoading: isModulesLoading } = useModulesQuery(id!);
   const { data: members, isLoading: isMembersLoading } = useProjectMembersQuery(id!);
+  const { data: b1Data } = useB1DataQuery(id!);
   const { data: allEmployees } = useEmployees();
 
   // Mutations
@@ -223,7 +297,21 @@ const ProjectDetail: React.FC = () => {
   }, []);
 
   const onSubmitParams = (data: UpdateProjectParametersRequest) => {
-    updateParams(data);
+    Swal.fire({
+      title: '¿Guardar Cambios?',
+      text: "Se actualizarán los parámetros impositivos para este proyecto.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Sí, guardar',
+      cancelButtonText: 'Cancelar',
+      customClass: { popup: 'rounded-[32px]' }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        updateParams(data);
+      }
+    });
   };
 
   const toggleModule = (moduleId: string) => {
@@ -249,7 +337,7 @@ const ProjectDetail: React.FC = () => {
       showCancelButton: true,
       confirmButtonText: 'Crear Módulo',
       confirmButtonColor: '#2563eb',
-      customClass: { popup: 'rounded-2xl' },
+      customClass: { popup: 'rounded-[32px]' },
       preConfirm: () => {
         const name = (document.getElementById('swal-name') as HTMLInputElement).value;
         const description = (document.getElementById('swal-desc') as HTMLInputElement).value;
@@ -279,10 +367,66 @@ const ProjectDetail: React.FC = () => {
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       confirmButtonText: 'Sí, eliminar',
-      customClass: { popup: 'rounded-2xl' }
+      customClass: { popup: 'rounded-[32px]' }
     }).then((result) => {
       if (result.isConfirmed) {
         deleteModule(moduleId);
+      }
+    });
+  };
+
+  // Handlers para descargas con confirmación
+  const handleDownloadB1 = () => {
+    if (!currentProject) return;
+    Swal.fire({
+      title: '¿Generar Presupuesto?',
+      text: "Se procesará el Formulario B-1 en formato PDF.",
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#2563eb',
+      confirmButtonText: 'Generar ahora',
+      cancelButtonText: 'Cancelar',
+      customClass: { popup: 'rounded-[32px]' }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        downloadB1({ id: id!, name: currentProject.name });
+      }
+    });
+  };
+
+  const handleDownloadProjectB2 = () => {
+    if (!currentProject) return;
+    Swal.fire({
+      title: '¿Generar APU Masivo?',
+      text: "Se generará un solo PDF con todos los análisis del proyecto. Esto puede tardar unos segundos.",
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5',
+      confirmButtonText: 'Generar ahora',
+      cancelButtonText: 'Cancelar',
+      customClass: { popup: 'rounded-[32px]' }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        downloadProjectB2({ id: id!, name: currentProject.name });
+      }
+    });
+  };
+
+  const handleDownloadB3 = () => {
+    if (!currentProject) return;
+    const filterText = b3Filter ? ` (${b3Filter})` : "";
+    Swal.fire({
+      title: `¿Generar Insumos${filterText}?`,
+      text: "Se procesará el Formulario B-3 consolidado.",
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#16a34a',
+      confirmButtonText: 'Generar ahora',
+      cancelButtonText: 'Cancelar',
+      customClass: { popup: 'rounded-[32px]' }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        downloadB3({ id: id!, name: currentProject.name, filter: b3Filter });
       }
     });
   };
@@ -441,7 +585,7 @@ const ProjectDetail: React.FC = () => {
       showCancelButton: true,
       confirmButtonColor: '#f59e0b',
       confirmButtonText: 'Sí, transferir cargo',
-      customClass: { popup: 'rounded-2xl' }
+      customClass: { popup: 'rounded-[32px]' }
     }).then((result) => {
       if (result.isConfirmed) {
         transferManager(member.userId);
@@ -453,7 +597,7 @@ const ProjectDetail: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4 text-left text-left text-left">
         <Loader2 className="h-10 w-10 text-blue-600 animate-spin text-left text-left" />
-        <p className="text-gray-500 font-medium text-left">Cargando proyecto...</p>
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-xs text-left">Cargando proyecto...</p>
       </div>
     );
   }
@@ -585,7 +729,7 @@ const ProjectDetail: React.FC = () => {
                     <ModuleItemsTable 
                       moduleId={mod.id} 
                       projectId={id!} 
-                      onViewAnalysis={(itemId, itemName) => setAnalysisItem({id: itemId, name: itemName})}
+                      onViewAnalysis={(itemId, itemName, mid) => setAnalysisItem({id: itemId, name: itemName, moduleId: mid})}
                     />
                   )}
                 </div>
@@ -599,12 +743,17 @@ const ProjectDetail: React.FC = () => {
               <div className="text-left">
                 <h4 className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mb-1">Cierre de Presupuesto</h4>
                 <p className="text-white/60 text-[11px] font-medium leading-relaxed max-w-xs">Suma total de todos los capítulos y actividades registradas en la obra hasta el momento.</p>
+                {b1Data?.totalLiteral && (
+                  <p className="text-blue-200/50 text-[10px] mt-4 font-bold italic uppercase leading-tight max-w-sm">
+                    {b1Data.totalLiteral}
+                  </p>
+                )}
               </div>
               <div className="text-right text-left">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Gran Total Obra</p>
                 <p className="text-4xl font-black text-white mt-2">
                   <span className="text-blue-500 text-2xl mr-1">Bs.</span>
-                  {totalGeneral.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {(b1Data?.totalAmount || totalGeneral).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
             </div>
@@ -673,7 +822,7 @@ const ProjectDetail: React.FC = () => {
                             </button>
                           )}
                           <hr className="my-1 border-gray-50 text-left text-left text-left" />
-                          <button className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 text-left text-left text-left">
+                          <button onClick={() => {/* Lógica de eliminar de obra si existe */}} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 text-left text-left text-left">
                             <UserMinus className="h-3.5 w-3.5 text-left text-left text-left text-left" /> Quitar de Obra
                           </button>
                         </div>
@@ -700,7 +849,7 @@ const ProjectDetail: React.FC = () => {
               <p className="text-xs text-gray-500 leading-relaxed font-medium text-left">Presupuesto General de Obra. Resume todos los capítulos y actividades con sus subtotales y literal.</p>
             </div>
             <button 
-              onClick={() => downloadB1({ id: id!, name: currentProject.name })}
+              onClick={handleDownloadB1}
               disabled={isDownloadingB1}
               className="w-full mt-8 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50 text-left"
             >
@@ -719,7 +868,7 @@ const ProjectDetail: React.FC = () => {
               <p className="text-xs text-gray-500 leading-relaxed font-medium text-left">Análisis de Precios Unitarios de todo el proyecto. Genera un único PDF con una página por cada ítem.</p>
             </div>
             <button 
-              onClick={() => downloadProjectB2({ id: id!, name: currentProject.name })}
+              onClick={handleDownloadProjectB2}
               disabled={isDownloadingProjectB2}
               className="w-full mt-8 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-3 disabled:opacity-50 text-left"
             >
@@ -752,13 +901,18 @@ const ProjectDetail: React.FC = () => {
               </div>
             </div>
             <button 
-              onClick={() => downloadB3({ id: id!, name: currentProject.name, filter: b3Filter })}
+              onClick={handleDownloadB3}
               disabled={isDownloadingB3}
               className="w-full mt-8 py-4 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center gap-3 disabled:opacity-50 text-left"
             >
               {isDownloadingB3 ? <Loader2 className="h-5 w-5 animate-spin text-left" /> : <Download className="h-5 w-5 text-left" />}
               {isDownloadingB3 ? 'Generando...' : 'Descargar B-3'}
             </button>
+          </div>
+
+          {/* Vista Previa de Insumos (JSON B-3) */}
+          <div className="col-span-full">
+            <B3ResourcesPreview projectId={id!} filter={b3Filter} />
           </div>
         </div>
       )}
@@ -840,7 +994,7 @@ const ProjectDetail: React.FC = () => {
         <BudgetItemAnalysis 
           itemId={analysisItem.id}
           itemName={analysisItem.name}
-          moduleId={modules?.find(m => expandedModules[m.id])?.id || ''}
+          moduleId={analysisItem.moduleId}
           projectId={id!}
           onClose={() => setAnalysisItem(null)}
         />

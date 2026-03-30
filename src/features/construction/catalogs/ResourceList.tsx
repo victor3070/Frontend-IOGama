@@ -61,7 +61,7 @@ const ResourceList: React.FC = () => {
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       confirmButtonText: 'Sí, eliminar',
-      customClass: { popup: 'rounded-2xl' }
+      customClass: { popup: 'rounded-[32px]' }
     }).then((result) => {
       if (result.isConfirmed) {
         deleteResource(id);

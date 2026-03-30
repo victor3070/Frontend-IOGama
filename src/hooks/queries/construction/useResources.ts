@@ -40,7 +40,7 @@ export const useCreateResourceMutation = () => {
         text: 'El nuevo insumo ha sido añadido al catálogo maestro.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     },
     onError: (error: any) => {
@@ -53,7 +53,7 @@ export const useCreateResourceMutation = () => {
         html: `<div class="text-left text-sm text-red-600">${msg}</div>`, 
         icon: 'error',
         confirmButtonColor: '#ef4444',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     }
   });
@@ -72,7 +72,7 @@ export const useUpdateResourceMutation = () => {
         text: 'Los cambios del insumo se han guardado correctamente.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     },
     onError: (error: any) => {
@@ -81,7 +81,7 @@ export const useUpdateResourceMutation = () => {
         text: error.response?.data?.message || 'No se pudieron guardar los cambios.',
         icon: 'error',
         confirmButtonColor: '#ef4444',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     }
   });
@@ -99,7 +99,7 @@ export const useDeleteResourceMutation = () => {
         text: 'El recurso ha sido removido del catálogo maestro.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     },
     onError: (error: any) => {
@@ -108,7 +108,7 @@ export const useDeleteResourceMutation = () => {
         text: error.response?.data?.message || 'No se pudo procesar la eliminación.',
         icon: 'error',
         confirmButtonColor: '#ef4444',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     }
   });

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { itemService } from '../../../services/construction/item.service';
+import { reportKeys } from './useReports';
 import { sileo } from 'sileo';
 import type { BudgetItemDto } from '../../../types/construction/item';
 import type { 
@@ -10,7 +11,6 @@ import type {
 export const itemKeys = {
   all: ['projectItems'] as const,
   list: (moduleId: string) => [...itemKeys.all, 'list', moduleId] as const,
-  analysis: (id: string) => [...itemKeys.all, 'analysis', id] as const,
 };
 
 export const useModuleItemsQuery = (moduleId: string) => {
@@ -30,6 +30,7 @@ export const useUpdateItemMutation = (moduleId: string, projectId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: itemKeys.list(moduleId) });
       queryClient.invalidateQueries({ queryKey: ['projectModules', 'list', projectId] });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b1(projectId) });
       sileo.success({ title: 'Ítem actualizado' });
     },
     onError: (error: any) => {
@@ -45,7 +46,8 @@ export const useAddCustomResourceMutation = (itemId: string, moduleId: string, p
     mutationFn: (data: AddCustomResourceRequest) => 
       itemService.addCustomResource(itemId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: itemKeys.analysis(itemId) });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b2(itemId) });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b1(projectId) });
       queryClient.invalidateQueries({ queryKey: itemKeys.list(moduleId) });
       queryClient.invalidateQueries({ queryKey: ['projectModules', 'list', projectId] });
       sileo.success({ title: 'Recurso añadido' });
@@ -60,7 +62,8 @@ export const useUpdateItemResourceMutation = (itemId: string, moduleId: string, 
     mutationFn: ({ resourceId, data }: { resourceId: string; data: UpdateItemResourceRequest }) => 
       itemService.updateItemResource(itemId, resourceId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: itemKeys.analysis(itemId) });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b2(itemId) });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b1(projectId) });
       queryClient.invalidateQueries({ queryKey: itemKeys.list(moduleId) });
       queryClient.invalidateQueries({ queryKey: ['projectModules', 'list', projectId] });
       sileo.success({ title: 'Análisis actualizado' });
@@ -75,7 +78,8 @@ export const useDeleteItemResourceMutation = (itemId: string, moduleId: string, 
     mutationFn: (resourceId: string) => 
       itemService.removeItemResource(itemId, resourceId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: itemKeys.analysis(itemId) });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b2(itemId) });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b1(projectId) });
       queryClient.invalidateQueries({ queryKey: itemKeys.list(moduleId) });
       queryClient.invalidateQueries({ queryKey: ['projectModules', 'list', projectId] });
       sileo.success({ title: 'Recurso eliminado' });
@@ -91,6 +95,7 @@ export const useDeleteItemMutation = (moduleId: string, projectId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: itemKeys.list(moduleId) });
       queryClient.invalidateQueries({ queryKey: ['projectModules', 'list', projectId] });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b1(projectId) });
       sileo.success({ title: 'Ítem eliminado' });
     }
   });

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { moduleService } from '../../../services/construction/module.service';
+import { reportKeys } from './useReports';
 import { sileo } from 'sileo';
 import Swal from 'sweetalert2';
 import type { CreateModuleRequest, UpdateModuleRequest } from '../../../types/construction/module';
@@ -24,6 +25,7 @@ export const useCreateModuleMutation = (projectId: string) => {
     mutationFn: (data: CreateModuleRequest) => moduleService.createModule(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: moduleKeys.list(projectId) });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b1(projectId) });
       sileo.success({ title: 'Módulo añadido', description: 'El capítulo se ha incorporado al presupuesto.' });
     },
     onError: (error: any) => {
@@ -40,6 +42,7 @@ export const useUpdateModuleMutation = (projectId: string) => {
       moduleService.updateModule(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: moduleKeys.list(projectId) });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b1(projectId) });
       sileo.success({ title: 'Módulo actualizado' });
     }
   });
@@ -52,6 +55,7 @@ export const useDeleteModuleMutation = (projectId: string) => {
     mutationFn: (id: string) => moduleService.deleteModule(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: moduleKeys.list(projectId) });
+      queryClient.invalidateQueries({ queryKey: reportKeys.b1(projectId) });
       sileo.success({ title: 'Módulo eliminado' });
     }
   });

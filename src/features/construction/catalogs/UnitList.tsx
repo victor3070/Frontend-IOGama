@@ -48,7 +48,7 @@ const UnitList: React.FC = () => {
       cancelButtonColor: '#6b7280',
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
-      customClass: { popup: 'rounded-2xl' }
+      customClass: { popup: 'rounded-[32px]' }
     }).then((result) => {
       if (result.isConfirmed) {
         deleteUnit(id);

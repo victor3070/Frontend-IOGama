@@ -33,7 +33,7 @@ export const useCreateEmployee = () => {
         text: 'El nuevo empleado ha sido registrado correctamente.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     },
     onError: (error: any) => {
@@ -51,7 +51,7 @@ export const useCreateEmployee = () => {
         html: `<div class="text-left text-sm text-red-600">${errorMessage}</div>`,
         icon: 'error',
         confirmButtonColor: '#ef4444',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     }
   });
@@ -120,7 +120,7 @@ export const useResetEmployeePassword = () => {
         text: 'La clave del empleado ha sido actualizada.',
         icon: 'success',
         confirmButtonColor: '#2563eb',
-        customClass: { popup: 'rounded-2xl' }
+        customClass: { popup: 'rounded-[32px]' }
       });
     },
     onError: (error: any) => {

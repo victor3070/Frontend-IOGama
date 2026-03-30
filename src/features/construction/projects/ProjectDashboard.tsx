@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -29,10 +29,22 @@ const ProjectDashboard: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectDto | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   
   const { data: projects, isLoading } = useProjectsQuery();
   const { mutate: deleteProject } = useDeleteProjectMutation();
   const { mutate: updateProject } = useUpdateProjectMutation();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const filteredProjects = projects?.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -41,6 +53,7 @@ const ProjectDashboard: React.FC = () => {
   );
 
   const handleDelete = (id: string, name: string) => {
+    setActiveMenuId(null);
     Swal.fire({
       title: '¿Eliminar Proyecto?',
       text: `Se borrará "${name}" permanentemente junto con todo su presupuesto.`,
@@ -50,7 +63,7 @@ const ProjectDashboard: React.FC = () => {
       cancelButtonColor: '#9ca3af',
       confirmButtonText: 'Sí, eliminar obra',
       cancelButtonText: 'Cancelar',
-      customClass: { popup: 'rounded-3xl' }
+      customClass: { popup: 'rounded-[32px]' }
     }).then((result) => {
       if (result.isConfirmed) {
         deleteProject(id);
@@ -59,7 +72,27 @@ const ProjectDashboard: React.FC = () => {
   };
 
   const handleChangeStatus = (project: ProjectDto, newStatus: ProjectStatus) => {
-    updateProject({ id: project.id, data: { ...project, status: newStatus } });
+    setActiveMenuId(null);
+    
+    if (newStatus === ProjectStatus.Active) {
+      Swal.fire({
+        title: '¿Iniciar Obra?',
+        text: `El estado del proyecto "${project.name}" cambiará a 'En Ejecución'.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Sí, iniciar ahora',
+        cancelButtonText: 'No todavía',
+        customClass: { popup: 'rounded-[32px]' }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          updateProject({ id: project.id, data: { ...project, status: newStatus } });
+        }
+      });
+    } else {
+      updateProject({ id: project.id, data: { ...project, status: newStatus } });
+    }
   };
 
   if (isLoading) {
@@ -124,33 +157,41 @@ const ProjectDashboard: React.FC = () => {
             </div>
 
             {/* Menu de Acciones */}
-            <div className="absolute top-6 right-6 z-10 group/menu text-left text-left">
-              <button className="p-2 bg-white/80 backdrop-blur-md rounded-xl text-gray-400 hover:text-gray-900 shadow-sm border border-gray-50 text-left">
+            <div className="absolute top-6 right-6 z-10 text-left text-left" ref={activeMenuId === project.id ? menuRef : null}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === project.id ? null : project.id); }}
+                className={`p-2 rounded-xl transition-all shadow-sm border ${
+                  activeMenuId === project.id ? 'bg-gray-900 text-white border-gray-800' : 'bg-white/80 backdrop-blur-md text-gray-400 hover:text-gray-900 border-gray-50'
+                }`}
+              >
                 <MoreVertical className="h-5 w-5 text-left" />
               </button>
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 hidden group-hover/menu:block animate-in fade-in slide-in-from-top-2 duration-200 text-left text-left">
-                <button 
-                  onClick={() => { setEditingProject(project); setIsFormOpen(true); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left"
-                >
-                  <Edit3 className="h-4 w-4 text-left" /> Editar Información
-                </button>
-                {project.status === ProjectStatus.Draft && (
+              
+              {activeMenuId === project.id && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-20 animate-in fade-in zoom-in-95 duration-150 text-left text-left">
                   <button 
-                    onClick={() => handleChangeStatus(project, ProjectStatus.Active)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-green-600 hover:bg-green-50 transition-colors text-left"
+                    onClick={() => { setEditingProject(project); setIsFormOpen(true); setActiveMenuId(null); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left"
                   >
-                    <CheckCircle2 className="h-4 w-4 text-left text-left" /> Iniciar Obra
+                    <Edit3 className="h-4 w-4 text-left" /> Editar Información
                   </button>
-                )}
-                <hr className="my-1 border-gray-50 text-left" />
-                <button 
-                  onClick={() => handleDelete(project.id, project.name)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors text-left"
-                >
-                  <Trash2 className="h-4 w-4 text-left" /> Eliminar Proyecto
-                </button>
-              </div>
+                  {project.status === ProjectStatus.Draft && (
+                    <button 
+                      onClick={() => handleChangeStatus(project, ProjectStatus.Active)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-green-600 hover:bg-green-50 transition-colors text-left"
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-left text-left" /> Iniciar Obra
+                    </button>
+                  )}
+                  <hr className="my-1 border-gray-50 text-left" />
+                  <button 
+                    onClick={() => handleDelete(project.id, project.name)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors text-left"
+                  >
+                    <Trash2 className="h-4 w-4 text-left" /> Eliminar Proyecto
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Card Content */}
