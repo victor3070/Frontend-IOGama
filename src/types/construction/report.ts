@@ -30,11 +30,14 @@ export interface B1ReportDto {
 
 // Formulario B-2 (Análisis de Precios Unitarios)
 export interface AnalysisResourceItemDto {
+  resourceId: string;
   name: string;
   unit: string;
+  unitOfMeasureId: string;
   performance: number;
   unitPrice: number;
   total: number;
+  type?: string;
 }
 
 export interface UnitPriceAnalysisDto {
@@ -47,37 +50,36 @@ export interface UnitPriceAnalysisDto {
   client: string;
   location: string;
   
-  // Materiales
+  // Totales y Subtotales
   totalMaterials: number;
-  materials: AnalysisResourceItemDto[];
   
-  // Mano de Obra
   laborSubtotal: number;
   socialBenefitsPercentage: number;
   socialBenefits: number;
   laborIVAPercentage: number;
   laborIVA: number;
   totalLabor: number;
-  labor: AnalysisResourceItemDto[];
   
-  // Equipo
   equipmentSubtotal: number;
   minorToolsPercentage: number;
   minorTools: number;
   totalEquipment: number;
-  equipment: AnalysisResourceItemDto[];
   
-  // Costos Indirectos
   generalExpensesPercentage: number;
   generalExpenses: number;
   utilityPercentage: number;
   utility: number;
-  itPercentage: number;
+  taxITPercentage?: number;
+  itPercentage?: number;
   taxIT: number;
   
-  // Total
   finalUnitPrice: number;
   finalUnitPriceLiteral: string;
+
+  // Listas de recursos
+  materials: AnalysisResourceItemDto[];
+  labor: AnalysisResourceItemDto[];
+  equipment: AnalysisResourceItemDto[];
 }
 
 // Formulario B-3 (Precios Unitarios Elementales)

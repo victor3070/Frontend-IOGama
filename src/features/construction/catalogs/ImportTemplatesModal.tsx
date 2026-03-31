@@ -11,7 +11,9 @@ import {
   Info
 } from 'lucide-react';
 import { useItemTemplatesQuery, useBulkImportMutation } from '../../../hooks/queries/construction/useItemTemplates';
+import { useCreateFromTemplateMutation } from '../../../hooks/queries/construction/useItems';
 import type { ItemTemplateDto } from '../../../types/construction/itemTemplate';
+import Swal from 'sweetalert2';
 
 interface ImportTemplatesModalProps {
   projectId: string;
@@ -31,6 +33,7 @@ const ImportTemplatesModal: React.FC<ImportTemplatesModalProps> = ({ projectId, 
 
   const { data: templates, isLoading } = useItemTemplatesQuery(false);
   const { mutate: importTemplates, isPending } = useBulkImportMutation(projectId);
+  const { mutate: createFromTemplate } = useCreateFromTemplateMutation(moduleId, projectId);
 
   const filteredTemplates = templates?.filter(t => 
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -43,6 +46,33 @@ const ImportTemplatesModal: React.FC<ImportTemplatesModalProps> = ({ projectId, 
       setSelectedItems(prev => prev.filter(i => i.template.id !== template.id));
     } else {
       setSelectedItems(prev => [...prev, { template, quantity: 1 }]);
+    }
+  };
+
+  const handleQuickCreate = async (template: ItemTemplateDto) => {
+    const { value: quantity } = await Swal.fire({
+      title: 'Crear Receta APU',
+      text: `¿Qué cantidad de "${template.name}" deseas añadir?`,
+      input: 'number',
+      inputLabel: `Unidad: ${template.unit}`,
+      inputValue: 1,
+      showCancelButton: true,
+      confirmButtonText: 'Crear en Presupuesto',
+      confirmButtonColor: '#2563eb',
+      customClass: { popup: 'rounded-[32px]' },
+      inputValidator: (value) => {
+        if (!value || parseFloat(value) <= 0) {
+          return 'Debes ingresar una cantidad válida';
+        }
+      }
+    });
+
+    if (quantity) {
+      createFromTemplate({
+        templateId: template.id,
+        moduleId,
+        quantity: parseFloat(quantity)
+      });
     }
   };
 

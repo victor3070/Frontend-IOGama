@@ -32,6 +32,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   useProjectsQuery, 
   useProjectParametersQuery, 
@@ -45,8 +46,11 @@ import {
 import { 
   useModuleItemsQuery, 
   useUpdateItemMutation, 
-  useDeleteItemMutation 
+  useDeleteItemMutation,
+  useCreateItemMutation
 } from '../../../hooks/queries/construction/useItems';
+import { itemService } from '../../../services/construction/item.service';
+import { useUnitsQuery } from '../../../hooks/queries/construction/useUnits';
 import { 
   useProjectMembersQuery,
   useInviteMembersMutation,
@@ -61,6 +65,10 @@ import {
   useB1DataQuery,
   useB3DataQuery
 } from '../../../hooks/queries/construction/useReports';
+import { 
+  useItemTemplatesQuery,
+  useCreateTemplateMutation 
+} from '../../../hooks/queries/construction/useItemTemplates';
 import { useEmployees } from '../../../hooks/queries/useEmployees';
 import { useAuthStore } from '../../../store/authStore';
 import type { UpdateProjectParametersRequest } from '../../../types/construction/projectParameters';
@@ -75,14 +83,21 @@ const ModuleItemsTable: React.FC<{
   moduleId: string; 
   projectId: string;
   onViewAnalysis: (itemId: string, itemName: string, moduleId: string) => void;
-}> = ({ moduleId, projectId, onViewAnalysis }) => {
+  onEditHeader: (item: BudgetItemDto, moduleId: string) => void;
+  onAddItem: (moduleId: string) => void;
+  onSaveAsTemplate: (item: BudgetItemDto) => void;
+}> = ({ moduleId, projectId, onViewAnalysis, onEditHeader, onAddItem, onSaveAsTemplate }) => {
   const { data: items, isLoading } = useModuleItemsQuery(moduleId);
   const { mutate: updateItem } = useUpdateItemMutation(moduleId, projectId);
   const { mutate: deleteItem } = useDeleteItemMutation(moduleId, projectId);
 
   const handleUpdateQuantity = (item: BudgetItemDto, newQty: number) => {
     if (newQty === item.quantity) return;
-    updateItem({ id: item.id, data: { quantity: newQty } });
+    // Para actualización rápida de cantidad usamos el endpoint PUT /api/items/{id}
+    // Pero solo enviamos lo necesario. El backend espera UpdateBudgetItemRequest completo.
+    // Buscaremos la unidad de medida ID si es posible, o el backend debería manejarlo.
+    // Por ahora, usamos el handleEditHeader para cambios estructurales y este para cantidad rápida si el backend lo permite.
+    // Según instrucciones, PUT /api/items/{id} requiere todos los campos.
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -119,42 +134,95 @@ const ModuleItemsTable: React.FC<{
         <tbody className="divide-y divide-gray-100 bg-white/50 text-left text-left">
           {items?.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-6 py-8 text-center text-xs text-gray-400 italic text-left text-left">No hay actividades en este capítulo. Importa plantillas desde el catálogo maestro.</td>
+              <td colSpan={6} className="px-6 py-12 text-center text-left">
+                <p className="text-xs text-gray-400 italic mb-4">No hay actividades en este capítulo.</p>
+                <div className="flex items-center justify-center gap-3">
+                  <button 
+                    onClick={() => onAddItem(moduleId)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-100 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-50 transition-all"
+                  >
+                    <Plus className="h-3 w-3" /> Añadir Vacío
+                  </button>
+                  <span className="text-[10px] font-bold text-gray-300">O</span>
+                  <button 
+                    onClick={() => {/* El botón de importar ya está en la cabecera del módulo */}}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-all opacity-50 cursor-not-allowed"
+                  >
+                    <PackagePlus className="h-3 w-3" /> Usar Catálogo
+                  </button>
+                </div>
+              </td>
             </tr>
           ) : (
-            items?.map((item) => (
-              <tr key={item.id} className="hover:bg-white transition-colors group text-left text-left text-left text-left">
-                <td className="px-6 py-3 text-xs font-bold text-blue-600 text-left text-left">{item.code}</td>
-                <td className="px-6 py-3 text-left text-left text-left">
-                  <p className="text-xs font-bold text-gray-800 text-left text-left">{item.name}</p>
-                  <p className="text-[10px] text-gray-400 italic font-medium text-left text-left text-left">Unidad: {item.unit}</p>
-                </td>
-                <td className="px-6 py-3 text-left text-left">
-                  <input 
-                    type="number"
-                    defaultValue={item.quantity}
-                    onBlur={(e) => handleUpdateQuantity(item, parseFloat(e.target.value) || 0)}
-                    className="w-20 mx-auto block px-2 py-1 rounded-lg border border-gray-200 text-xs font-bold text-center focus:ring-2 focus:ring-blue-100 outline-none text-left text-left"
-                  />
-                </td>
-                <td className="px-6 py-3 text-xs text-gray-600 font-medium text-left text-left">{item.unitPrice.toLocaleString()}</td>
-                <td className="px-6 py-3 text-xs font-black text-gray-900 text-left text-left">{item.total.toLocaleString()}</td>
-                <td className="px-6 py-3 text-right text-left text-left">
-                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity text-left text-left text-left">
-                    <button 
-                      onClick={() => onViewAnalysis(item.id, item.name, moduleId)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-left text-left" 
-                      title="Análisis de Precios Unitarios"
+            <>
+              {items?.map((item) => (
+                <tr key={item.id} className="hover:bg-white transition-colors group text-left text-left text-left text-left">
+                  <td 
+                    className="px-6 py-3 text-xs font-bold text-blue-600 text-left text-left cursor-pointer hover:underline"
+                    onClick={() => onEditHeader(item, moduleId)}
+                  >
+                    {item.code || '---'}
+                  </td>
+                  <td className="px-6 py-3 text-left text-left text-left">
+                    <p 
+                      className="text-xs font-bold text-gray-800 text-left text-left cursor-pointer hover:text-blue-600 transition-colors"
+                      onClick={() => onEditHeader(item, moduleId)}
                     >
-                      <Calculator className="h-3.5 w-3.5 text-left text-left" />
-                    </button>
-                    <button onClick={() => handleDelete(item.id, item.name)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all text-left text-left text-left" title="Eliminar">
-                      <Trash2 className="h-3.5 w-3.5 text-left text-left" />
-                    </button>
-                  </div>
+                      {item.name}
+                    </p>
+                    <p className="text-[10px] text-gray-400 italic font-medium text-left text-left text-left">Unidad: {item.unit}</p>
+                  </td>
+                  <td className="px-6 py-3 text-left text-left">
+                    <div 
+                      className="w-20 mx-auto px-2 py-1 rounded-lg border border-gray-100 text-xs font-bold text-center bg-gray-50/50 cursor-pointer hover:border-blue-200"
+                      onClick={() => onEditHeader(item, moduleId)}
+                    >
+                      {item.quantity}
+                    </div>
+                  </td>
+                  <td className="px-6 py-3 text-xs text-gray-600 font-medium text-left text-left">{item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-3 text-xs font-black text-gray-900 text-left text-left">{item.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-3 text-right text-left text-left">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity text-left text-left text-left">
+                      <button 
+                        onClick={() => onViewAnalysis(item.id, item.name, moduleId)}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-left text-left" 
+                        title="Análisis de Precios Unitarios"
+                      >
+                        <Calculator className="h-3.5 w-3.5 text-left text-left" />
+                      </button>
+                      <button 
+                        onClick={() => onEditHeader(item, moduleId)}
+                        className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all text-left text-left" 
+                        title="Editar Cabecera"
+                      >
+                        <Edit3 className="h-3.5 w-3.5 text-left text-left" />
+                      </button>
+                      <button 
+                        onClick={() => onSaveAsTemplate(item)}
+                        className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all text-left text-left" 
+                        title="Guardar como Plantilla"
+                      >
+                        <Save className="h-3.5 w-3.5 text-left text-left" />
+                      </button>
+                      <button onClick={() => handleDelete(item.id, item.name)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all text-left text-left text-left" title="Eliminar">
+                        <Trash2 className="h-3.5 w-3.5 text-left text-left" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td colSpan={6} className="px-6 py-3 bg-gray-50/20">
+                  <button 
+                    onClick={() => onAddItem(moduleId)}
+                    className="flex items-center gap-2 text-[10px] font-black text-blue-400 hover:text-blue-600 uppercase tracking-[0.2em] transition-all ml-auto"
+                  >
+                    <Plus className="h-3 w-3" /> Añadir Actividad al Capítulo
+                  </button>
                 </td>
               </tr>
-            ))
+            </>
           )}
         </tbody>
       </table>
@@ -262,6 +330,154 @@ const ProjectDetail: React.FC = () => {
   const { mutate: inviteMembers } = useInviteMembersMutation(id!);
   const { mutate: updateMembers } = useUpdateMembersMutation(id!);
   const { mutate: transferManager } = useTransferManagerMutation(id!);
+  const { mutate: createItem } = useCreateItemMutation('', id!); // El moduleId se pasará dinámicamente o se invalidará correctamente
+  const { mutate: updateItemHeader } = useUpdateItemMutation('', id!);
+  
+  const { mutate: createTemplate } = useCreateTemplateMutation();
+  const { data: units } = useUnitsQuery();
+
+  const handleSaveAsTemplate = async (item: BudgetItemDto) => {
+    // Buscar el ID de la unidad de medida por el nombre (aproximado)
+    const unitId = units?.find(u => u.name === item.unit || u.abbreviation === item.unit)?.id || "";
+
+    const { value: formValues } = await Swal.fire({
+      title: 'Guardar como Plantilla',
+      text: 'Se creará una nueva entrada en el catálogo maestro basada en esta actividad.',
+      html: `
+        <div class="space-y-4 pt-4 text-left">
+          <div class="grid grid-cols-4 gap-4">
+            <div class="col-span-1">
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Código</label>
+              <input id="tmpl-code" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100" value="${item.code || ''}">
+            </div>
+            <div class="col-span-3">
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Nombre de Plantilla</label>
+              <input id="tmpl-name" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100" value="${item.name}">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Unidad de Medida</label>
+            <select id="tmpl-unit" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 bg-white">
+              ${units?.map(u => `<option value="${u.id}" ${u.id === unitId ? 'selected' : ''}>${u.name} (${u.abbreviation})</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Crear Plantilla',
+      confirmButtonColor: '#10b981',
+      customClass: { popup: 'rounded-[32px]' },
+      preConfirm: () => {
+        const name = (document.getElementById('tmpl-name') as HTMLInputElement).value;
+        const code = (document.getElementById('tmpl-code') as HTMLInputElement).value;
+        const unitOfMeasureId = (document.getElementById('tmpl-unit') as HTMLSelectElement).value;
+        if (!name || !unitOfMeasureId) {
+          Swal.showValidationMessage('Nombre y Unidad son obligatorios');
+          return false;
+        }
+        return { name, code, unitOfMeasureId };
+      }
+    });
+
+    if (formValues) {
+      createTemplate(formValues);
+    }
+  };
+
+  const handleAddItem = async (moduleId: string) => {
+    const { value: formValues } = await Swal.fire({
+      title: 'Añadir Nueva Actividad',
+      html: `
+        <div class="space-y-4 pt-4 text-left">
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Descripción del Ítem</label>
+            <input id="item-name" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100" placeholder="Ej. Excavación de cimientos">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Unidad</label>
+              <select id="item-unit" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 bg-white">
+                ${units?.map(u => `<option value="${u.id}">${u.name} (${u.abbreviation})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Cantidad Inicial</label>
+              <input id="item-qty" type="number" step="0.01" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100" value="0">
+            </div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Añadir Actividad',
+      confirmButtonColor: '#2563eb',
+      customClass: { popup: 'rounded-[32px]' },
+      preConfirm: () => {
+        const name = (document.getElementById('item-name') as HTMLInputElement).value;
+        const unitOfMeasureId = (document.getElementById('item-unit') as HTMLSelectElement).value;
+        const quantity = parseFloat((document.getElementById('item-qty') as HTMLInputElement).value) || 0;
+        if (!name) {
+          Swal.showValidationMessage('El nombre es obligatorio');
+          return false;
+        }
+        return { moduleId, name, unitOfMeasureId, quantity };
+      }
+    });
+
+    if (formValues) {
+      createItem(formValues);
+    }
+  };
+
+  const handleEditHeader = async (item: BudgetItemDto, moduleId: string) => {
+    const { value: formValues } = await Swal.fire({
+      title: 'Editar Cabecera',
+      html: `
+        <div class="space-y-4 pt-4 text-left">
+          <div class="grid grid-cols-4 gap-4">
+            <div class="col-span-1">
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Código</label>
+              <input id="edit-code" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100" value="${item.code || ''}">
+            </div>
+            <div class="col-span-3">
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Descripción</label>
+              <input id="edit-name" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100" value="${item.name}">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Unidad</label>
+              <select id="edit-unit" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 bg-white">
+                ${units?.map(u => `<option value="${u.id}" ${u.name === item.unit ? 'selected' : ''}>${u.name} (${u.abbreviation})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Cantidad</label>
+              <input id="edit-qty" type="number" step="0.01" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100" value="${item.quantity}">
+            </div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar Cambios',
+      confirmButtonColor: '#2563eb',
+      customClass: { popup: 'rounded-[32px]' },
+      preConfirm: () => {
+        const name = (document.getElementById('edit-name') as HTMLInputElement).value;
+        const code = (document.getElementById('edit-code') as HTMLInputElement).value;
+        const unitOfMeasureId = (document.getElementById('edit-unit') as HTMLSelectElement).value;
+        const quantity = parseFloat((document.getElementById('edit-qty') as HTMLInputElement).value) || 0;
+        if (!name) {
+          Swal.showValidationMessage('El nombre es obligatorio');
+          return false;
+        }
+        return { id: item.id, name, code, unitOfMeasureId, quantity };
+      }
+    });
+
+    if (formValues) {
+      updateItemHeader({ id: item.id, data: formValues });
+    }
+  };
   // Mutations de Reportes
   const { mutate: downloadB1, isPending: isDownloadingB1 } = useDownloadB1Mutation();
   const { mutate: downloadB2, isPending: isDownloadingB2 } = useDownloadB2Mutation();
@@ -730,6 +946,9 @@ const ProjectDetail: React.FC = () => {
                       moduleId={mod.id} 
                       projectId={id!} 
                       onViewAnalysis={(itemId, itemName, mid) => setAnalysisItem({id: itemId, name: itemName, moduleId: mid})}
+                      onEditHeader={handleEditHeader}
+                      onAddItem={handleAddItem}
+                      onSaveAsTemplate={handleSaveAsTemplate}
                     />
                   )}
                 </div>

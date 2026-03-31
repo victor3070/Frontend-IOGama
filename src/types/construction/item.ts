@@ -12,6 +12,21 @@ export interface BudgetItemDto {
   equipmentCost: number;
 }
 
+export interface CreateBudgetItemRequest {
+  moduleId: string;
+  name: string;
+  unitOfMeasureId: string;
+  quantity: number;
+}
+
+export interface UpdateBudgetItemRequest {
+  id: string;
+  name: string;
+  unitOfMeasureId: string;
+  quantity: number;
+  code: string;
+}
+
 export interface ImportItemRequest {
   templateId: string;
   quantity: number;

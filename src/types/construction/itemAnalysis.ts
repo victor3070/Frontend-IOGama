@@ -62,10 +62,21 @@ export interface AddCustomResourceRequest {
 // DTO para PUT /api/items/{id}/resources/{resourceId}
 export interface UpdateItemResourceRequest {
   id: string; // resourceId
+  budgetItemId: string;
   name: string;
   unitOfMeasureId: string;
   unitPrice: number;
   performance: number;
   quantity: number;
   type: string;
+}
+
+export interface ImportResourceItem {
+  resourceId: string;
+  performance: number;
+}
+
+export interface ImportResourcesRequest {
+  budgetItemId: string;
+  resources: ImportResourceItem[];
 }
